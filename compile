@@ -1,0 +1,2 @@
+gcc -o ocamrun -I/home/scexao/src/cacao/src -I$MILDIR/include -I$OCAM2SDKDIR/include ocam2k.c /home/scexao/src/cacao/src/ImageStreamIO/ImageStreamIO.c -L$MILDIR/lib -L$OCAM2SDKDIR/lib -lmil -locam2sdk -lm -lrt -lpthread
+
