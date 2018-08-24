@@ -14,7 +14,7 @@ Reads ocam2k camera with Matrox frame grabber. Transfers data through TCP link t
 
 ## Compiling
 
-   ./compile
+	./compile
 
 Creates executable ocamrun
 
@@ -22,10 +22,10 @@ Creates executable ocamrun
 
 High level scripts sets up connection and runs in tmux session:
 
-   ./ocamstart
+	./ocamstart
 
 For more information, run:
 
-   ./ocamstart -h
+	./ocamstart -h
 
 
