@@ -1,0 +1,289 @@
+#!/bin/bash
+
+
+pname=`echo "$0" | sed "s/\.\///g"`
+echo "pname = $pname"
+
+NBARGS=0
+
+
+function printHELP {
+echo "------------------------------------------------------------------------"
+echo "$(tput bold) $pname : START OCAM2k camera $(tput sgr0)"
+echo "------------------------------------------------------------------------"
+echo "  Processes run in tmux sessions"
+echo ""
+echo "  tmux session    |         process  |   CPU set  |  description"
+echo "------------------+------------------+------------+---------------------"
+echo "   ocamContRead   |          ocamrun |       ocam | frame grabber code  "
+echo "   ocamTCPsend    | shmimTCPtransmit |     aolCOM | transfer frames over TCP"
+echo "   cpustate0      |        setlatency|     system | set CPU in low latency mode"
+echo "------------------+------------------+------------+---------------------"
+echo "   "
+echo "$(tput bold)ocamContRead $(tput sgr0)"
+echo "Runs in /home/scexao/src/OCAM2k_contread/"
+echo "Creates shared memory images:"
+echo "    ocam2k     : 2D image"
+echo "    ocam2krc   : 3D raw cube (raw data)"
+echo "    ocam2kpixr : 3D pixel mapping (pixel indices in raw)" 
+echo "    ocam2kpixi : 3D pixel mapping (indices in image)"
+echo ""
+echo " $(tput bold)USAGE:$(tput sgr0)"
+echo "     $0 [-h] "
+echo ""
+echo " $(tput bold)OPTIONS:$(tput sgr0)"
+echo "     $(tput bold)-h$(tput sgr0)          help"
+echo ""
+echo " $(tput bold)NOTES:$(tput sgr0)"
+echo "CHECKING PROCESSES - LOCAL COMPUTER ---------"
+echo "  shared mem ocam2krc is only visible from cpusets ocam and aolCOM"
+echo "  To check ocam2krc, type:"
+echo "  > sudo cset proc -s aolCOM -e /home/scexao/bin/shmimmon ocam2krc"
+echo "CHECKING PROCESSES - DESTINATION ------------"
+echo "  Destination TCP receive is in tmux session with root permission"
+echo "  > sudo tmux a -t ocamTCPrcv"
+echo "  ocam2krc has root permission"
+echo "  > sudo LD_LIBRARY_PATH=/usr/local/lib /home/scexao/src/cacao/src/CommandLineInterface/scripts/shmimmon ocam2krc"
+echo ""
+#echo " $(tput bold)OUTPUT:$(tput sgr0)"
+#echo "     out.txt     output file"
+echo ""
+echo "------------------------------------------------------------------------"
+}
+
+
+printHELP1 ()
+{
+    printf "%20s       start OCAM2k camera\n" "$0" 
+}
+
+
+
+EXITSTATUS=0
+
+function checkFile {
+if [ -f $1 ]
+  then
+    echo "[$(tput setaf 2)$(tput bold)   OK   $(tput sgr0)] File $(tput bold)$1$(tput sgr0) found"
+   else
+    echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] File $(tput bold)$1$(tput sgr0) not found"
+    EXITSTATUS=1
+fi
+}
+
+function checkDir {
+if [ -d $1 ]
+  then
+    echo "[$(tput setaf 2)$(tput bold)   OK   $(tput sgr0)] Directory $(tput bold)$1$(tput sgr0) found"
+   else
+    echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] Directory $(tput bold)$1$(tput sgr0) not found"
+    EXITSTATUS=1
+fi
+}
+
+function cmdexists()
+{
+  command -v "$1" >/dev/null 2>&1
+}
+
+
+function checkCommand {
+if cmdexists $1; then
+    echo "[$(tput setaf 2)$(tput bold)   OK   $(tput sgr0)] Command $(tput bold)$1$(tput sgr0) found"
+else
+    echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] Command $(tput bold)$1$(tput sgr0) not installed.  Aborting."; EXITSTATUS=1;
+fi
+
+}
+
+
+# ================= OPTIONS =============================
+
+
+
+
+# Transform long options to short ones
+singlelinehelp=0
+for arg in "$@"; do
+  shift
+  case "$arg" in
+    "--help") set -- "$@" "-h" ;;
+    "--help1") 
+set -- "$@" "-h" 
+singlelinehelp=1;
+;;
+    *)        set -- "$@" "$arg"
+  esac
+done
+
+
+
+
+#Parse command line flags
+while getopts :h FLAG; do
+  case $FLAG in
+    h)  #show help
+      if [ "$singlelinehelp" -eq "0" ]; then
+      printHELP
+      else
+      printHELP1
+      fi
+      exit
+      ;;
+    \?) #unrecognized option - show help
+      echo -e \\n"Option -${BOLD}$OPTARG${NORM} not allowed."
+      printHELP
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))  #This tells getopts to move on to the next argument.
+
+### End getopts code ###
+
+
+
+
+
+
+
+
+if [ "$1" = "help" ] || [ "$#" -ne $NBARGS ]; then
+if [ "$#" -ne $NBARGS ]; then
+    echo "$(tput setaf 1)$(tput bold) Illegal number of parameters ($NBARGS params required, $# entered) $(tput sgr0)"
+fi
+printHELP
+        exit
+fi
+
+
+
+# ======================= CHECK REQUIRED FILES =================================
+echo ""
+
+checkFile "/home/scexao/bin/cpuconfig"
+
+
+
+# ============================= CHECK IF COMMAND EXISTS ==========================
+
+checkCommand tmux
+
+
+
+
+
+
+if [ $EXITSTATUS -eq 1 ]; then
+echo ""
+echo "$(tput setaf 1)$(tput bold) REQUIRED FILES, COMMANDS NOT FOUND: EXITING $(tput sgr0)"
+echo ""
+exit
+else
+echo ""
+fi
+
+
+
+# ======================= SCRIPT CODE STARTS HERE =================================
+
+
+# /home/scexao/bin/cpuconfig 
+
+echo " ====== STARTING OCAM2k CAMERA ========"
+
+# set on/off loop
+# When this file is removed, the acquisition will stop
+touch /home/scexao/ocam2kmode_cont.txt
+touch /home/scexao/ocam2kmode_restart.txt # start acquisition
+
+#cd /home/scexao/src/OCAM2k_contread/
+cd /homt/scexao/src/OCAM2k-MLI-acqu/
+
+
+tmux kill-session -t ocamContRead &> /dev/null
+tmux new-session -d -s ocamContRead
+tmux send-keys -t ocamContRead "sudo cset proc -s ocam -e ./ocamrun 4" C-m
+
+
+
+ssh scexao@scexaoRTC "sudo pkill -9 ocamrundec"
+
+
+# configure CPU cores
+echo "Configuring CPU cores shielding ..."
+sudo /home/scexao/bin/cpuconfig
+
+
+
+# disable C-state
+echo "Forcing CPU in state C0 ..."
+tmux new-session -d -s cpustate0 &> /dev/null
+tmux send-keys -t cpustate0 "sudo /home/scexao/bin/setlatency 0  > /dev/null" C-m
+
+
+
+# kill previous tmux sessions
+tmux kill-session -t ocamTCPsend &> /dev/null
+ssh scexao@scexaoRTC "sudo cset proc -s aol0COM -e tmux kill-session -t ocamTCPrcv &> /dev/null"
+sleep 2
+
+
+
+# restart new sessions
+# TODO: create aol0COM session if not already existing
+ssh scexao@scexao "sudo cset proc -s aol0COM -e /home/scexao/bin/ocamTCPrcv > /dev/null"
+sleep 5
+
+
+
+
+
+echo "Send frames to RTC ..."
+tmux new-session -d -s ocamTCPsend
+tmux send-keys -t ocamTCPsend "sudo cset proc -s aolCOM -e /home/scexao/bin/shmimTCPtransmit -p 88 ocam2krc 10.20.30.1 30107" C-m 
+# > /dev/null" C-m
+
+sleep 2
+
+
+ssh scexao@scexaoRTC "sudo chown scexao /tmp/ocam2krc.im.shm" 
+ssh scexao@scexaoRTC "sudo chgrp scexao /tmp/ocam2krc.im.shm" 
+ssh scexao@scexaoRTC "sudo chown scexao /dev/shm/sem.ocam2krc_sem0*"
+ssh scexao@scexaoRTC "sudo chgrp scexao /dev/shm/sem.ocam2krc_sem0*"
+
+
+
+# set priority on ocam soft
+tcppid=$(pgrep shmimTCPtrans)
+#echo $tcppid
+sudo chrt -f -p 80 $tcppid
+
+echo "Send decode files to RTC ..."
+ssh scexao@scexaoRTC "mkdir -p /home/scexao/AOloop/Pyramid/"
+rsync -au --progress pixsliceNB.txt scexao@scexaoRTC:/home/scexao/AOloop/Pyramid/  > /dev/null
+sudo rm -f ocam2kpixi.fits  > /dev/null
+sudo cset proc -s aolCOM -e /home/scexao/bin/shmim2fits ocam2kpixi ocam2kpixi.fits > /dev/null
+rsync -au --progress ocam2kpixi.fits scexao@scexao:/home/scexao/AOloop/Pyramid/  > /dev/null
+
+
+
+sleep 1
+echo "Start decoding on RTC ..."
+ssh scexao@scexao "/home/scexao/bin/ocamdecode" 
+
+read -p "Press key to stop frame grabbing and transfer ..." -n 1
+tmux send-keys -t ocamContRead "" C-m
+tmux send-keys -t ocamContRead "" C-m
+tmux send-keys -t ocamContRead "" C-m
+tmux kill-session -t ocamContRead
+tmux kill-session -t ocamTCPsend
+ssh scexao@scexaoRTC "sudo cset proc -s aol0COM -e tmux kill-session -t ocamTCPrcv"
+ssh scexao@scexaoRTC "tmux kill-session -t ocamdecode" 
+
+ssh scexao@scexaoRTC "sudo pkill -9 ocamrundec"
+
+
+
+
+

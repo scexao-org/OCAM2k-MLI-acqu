@@ -1,0 +1,116 @@
+#! /bin/bash
+
+# number of arguments to script
+NBARGS=3
+
+pname="shmimTCPtransmit-$1"
+
+
+function printHELP {
+echo "------------------------------------------------------------------------"
+echo "$(tput bold) $pname : SEND IMAGE STREAM TO COMPUTER $(tput sgr0)"
+echo "------------------------------------------------------------------------"
+echo "  SEND IMAGE STREAM TO SCEXAO"
+echo " "
+echo "   "
+echo " $(tput bold)USAGE:$(tput sgr0)"
+echo "     $0 [-h p <priority>] <data stream name> <IP> <port>"
+echo ""
+echo " $(tput bold)OPTIONS:$(tput sgr0)"
+echo "     $(tput bold)-h$(tput sgr0)             help"
+echo "     $(tput bold)-p$(tput sgr0) <prio>      RT scheduler priority (default = 80)"
+echo ""
+echo " $(tput bold)INPUT:$(tput sgr0)"
+echo "  INPUT <data stream name>   : shared memory stream name. Actual file is 
+/tmp/<stream name>.im.shm"
+echo "  INPUT <IP>                 : IP number"
+echo "  INPUT <port>               : port number"
+echo ""
+echo " $(tput bold)EXAMPLE:$(tput sgr0)"
+echo "     $0 133.40.100.200 ircam2 10000"
+echo ""
+echo "------------------------------------------------------------------------"
+}
+
+
+printHELP1 ()
+{
+    printf "%20s       Send image stream to computer\n" "$0" 
+}
+
+
+
+
+
+
+
+
+
+# Transform long options to short ones
+singlelinehelp=0
+for arg in "$@"; do
+  shift
+  case "$arg" in
+    "--help") set -- "$@" "-h" ;;
+    "--help1") 
+set -- "$@" "-h" 
+singlelinehelp=1;
+;;
+    *)        set -- "$@" "$arg"
+  esac
+done
+
+
+
+RTprio="80"
+
+
+while getopts :hp: FLAG; do
+  case $FLAG in
+    p)  #  set RTprio
+      RTprio=$OPTARG
+      ;;
+    h)  #show help
+      if [ "$singlelinehelp" -eq "0" ]; then
+      printHELP
+      else
+      printHELP1
+      fi
+      exit
+      ;;
+    \?) #unrecognized option - show help
+      echo -e \\n"Option -${BOLD}$OPTARG${NORM} not allowed."
+      printHELP
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))  
+
+
+
+
+
+
+
+if [ "$1" = "help" ] || [ "$#" -ne $NBARGS ]; then
+if [ "$#" -ne $NBARGS ]; then
+    echo "$(tput setaf 1)$(tput bold) Illegal number of parameters ($NBARGS params required, $# entered) $(tput sgr0)"
+fi
+printHELP
+        exit
+fi
+
+
+
+
+
+
+
+
+cacao -n shmimTCPtransmit-$1 << EOF
+readshmim $1
+imnetwtransmit $1 $2 $3 0 ${RTprio}
+exit
+EOF
+
