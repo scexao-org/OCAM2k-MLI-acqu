@@ -4,6 +4,8 @@ Pyramid Camera Data Acquisition (computer scexaoPCAM)
 
 Reads ocam2k camera with Matrox frame grabber. Transfers data through TCP link to RTC computer. Pixel values are transfered as they are read, without waiting for full frame.
 
+Runs on kernel 3.13, using mil-lite-10.10.
+
 
 ## Pre-requisites:
 
